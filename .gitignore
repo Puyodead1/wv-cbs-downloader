@@ -1,0 +1,5 @@
+out/
+temp/
+tools/manifest.json
+tools/cbs-manifests/*.json
+node_modules/
