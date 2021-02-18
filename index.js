@@ -21,7 +21,7 @@ const { join } = require("path");
 const { existsSync, mkdirSync } = require("fs");
 
 const LICENSE_SERVER_AUTH =
-  "Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjNkNjg4NGJmLWViMDktNDA1Zi1hOWZjLWU0NGE1NmY3NjZiNiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0OTM4NDE3OF9VUyIsImVudCI6W3siYmlkIjoiQWxsQWNjZXNzTWFpbiIsImVwaWQiOjl9XSwiaWF0IjoxNjEzNTE4MTMzLCJleHAiOjE2MTM1MjUzMzMsImlzcyI6ImNicyIsImFpZCI6ImNic2kiLCJqdGkiOiJkOWY4OWRlMC00YTRkLTQwNzQtODYyOS1lNWM2ZDQ4NjBiYzkifQ.WoGhyQpd-xwev5TxmURH5SODI1iA5rV35Lg7CSPwgH8";
+  "Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjNkNjg4NGJmLWViMDktNDA1Zi1hOWZjLWU0NGE1NmY3NjZiNiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0OTM4NDE3OF9VUyIsImVudCI6W3siYmlkIjoiQWxsQWNjZXNzTWFpbiIsImVwaWQiOjl9XSwiaWF0IjoxNjEzNjYyMDY0LCJleHAiOjE2MTM2NjkyNjQsImlzcyI6ImNicyIsImFpZCI6ImNic2kiLCJqdGkiOiI5MWU5YTM3Yi1mOGEyLTRmNTUtOGRiMS0xODkwNjlmZDg1MzgifQ.9q6DBU1yg_hB9cnobkDApaB9-MoX8pRa3d4N1kwk4aY";
 
 function processEpisode(episode) {
   return new Promise(async (resolve, reject) => {
@@ -41,6 +41,7 @@ function processEpisode(episode) {
           );
 
           const videoRepresentation = getBestVideoRepresentation(
+            episode,
             videoAdaptationSet
           );
 
@@ -231,7 +232,7 @@ function processEpisode(episode) {
       );
       const start = Date.now();
       await processEpisode(episode).catch((e) => {
-        console.error(e);
+        console.error(`Error processing episode: ${e}`);
         failed.push(episode);
       });
       const end = Date.now();

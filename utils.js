@@ -29,8 +29,8 @@ function sanitize(input, replacement, replaceSpace) {
   return truncate(sanitized, 255);
 }
 
-const DOWNLOAD_BASE = __dirname;
-// const DOWNLOAD_BASE = "/mnt/i/";
+//const DOWNLOAD_BASE = __dirname;
+const DOWNLOAD_BASE = "/mnt/f/CBS";
 const DOWNLOAD_DIR = join(DOWNLOAD_BASE, "temp");
 const AUDIO_DIR = join(DOWNLOAD_BASE, "temp", "audio");
 const VIDEO_DIR = join(DOWNLOAD_BASE, "temp", "video");
@@ -40,8 +40,8 @@ const AUDIO_DEC = join(DOWNLOAD_BASE, "temp", "audio.decrypted");
 const VIDEO_DEC = join(DOWNLOAD_BASE, "temp", "video.decrypted");
 const OUTPUT_DIR = join(DOWNLOAD_BASE, "out");
 // const OUTPUT_DIR = DOWNLOAD_BASE;
-// const PROXY_HOST = "10.1.10.234";
-const PROXY_HOST = "192.168.1.5";
+const PROXY_HOST = "10.223.33.124";
+//const PROXY_HOST = "192.168.1.5";
 
 const CHROME_RSA_PRIVATE_KEY = `-----BEGIN PRIVATE KEY-----
 MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC10dxEGINZbF0nIoMtM8705Nqm6ZWdb72DqTdFJ+UzQIRIUS59lQkYLvdQp71767vz0dVlPTikHmiv
@@ -65,6 +65,11 @@ aOibJklLBkd7Yfn1OndVrenMKTE1F4/6jg5rmwyv4qFQ1u8M/ThZUrAgb8pTmKfb9vrv1V8AApwVzcQg
 YrOzlde+V3UOb5FVzPcrOmaERfyujV3h4sHGRbTCsqYVwMalO7hmNmtemwt0xBuf5Juia7t1scuJypQ8lI1iEsB+JZVo3Uovfa9nNX0gl5TAq1tAh6M55/ttpWAirWHv
 CQIDAQAB
 -----END PUBLIC KEY-----`;
+
+async function fetchManifest(url) {
+  const res = await axios.get(url);
+  return res.data;
+}
 
 async function isRSAConsistent(publicKey, privateKey) {
   // See if the data is correctly decrypted after encryption
@@ -556,7 +561,7 @@ function mergeFilesLinux(dir, out, segments) {
  * @returns best video representation
  *
  */
-const getBestVideoRepresentation = (videoSet) => {
+const getBestVideoRepresentation = (episode, videoSet) => {
   // not all manifests have a maxWidth and maxHeight
   // some only have one specific resolution but multiple bandwiths
 
@@ -565,8 +570,7 @@ const getBestVideoRepresentation = (videoSet) => {
     // find the highest resolution
     return videoSet.Representation.find(
       (x) =>
-        episode.$.width === videoSet.$.maxWidth &&
-        episode.$.height === videoSet.$.maxHeight
+        x.$.width === videoSet.$.maxWidth && x.$.height === videoSet.$.maxHeight
     );
   } else {
     // theres only one resolution, we just need to find the highest bandwidth
@@ -872,6 +876,7 @@ module.exports = {
   DOWNLOAD_BASE,
   DOWNLOAD_DIR,
   OUTPUT_DIR,
+  fetchManifest,
   processSegments,
   getOutputFilename,
   sanitize: function (input, options, replaceSpace = true) {
