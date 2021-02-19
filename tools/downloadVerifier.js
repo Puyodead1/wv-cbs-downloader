@@ -72,10 +72,12 @@ if (!fs.existsSync(options.output)) {
     );
     const pathToFile = path.join(
       options.output,
-      sanitize(episode.series_title, undefined, false),
+      sanitize(episode.series_title, undefined, true),
       seasonShortcode,
       outputFilename
     );
+
+    // console.debug(pathToFile);
 
     const exists = fs.existsSync(pathToFile);
     //const msg = exists ? `${icons.success} Present` : `${icons.error} Missing`;
