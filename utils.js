@@ -40,8 +40,8 @@ const AUDIO_DEC = join(DOWNLOAD_BASE, "temp", "audio.decrypted");
 const VIDEO_DEC = join(DOWNLOAD_BASE, "temp", "video.decrypted");
 const OUTPUT_DIR = join(DOWNLOAD_BASE, "out");
 // const OUTPUT_DIR = DOWNLOAD_BASE;
-const PROXY_HOST = "10.223.33.124";
-//const PROXY_HOST = "192.168.1.5";
+//const PROXY_HOST = "10.223.33.124";
+const PROXY_HOST = "10.1.10.234";
 
 const CHROME_RSA_PRIVATE_KEY = `-----BEGIN PRIVATE KEY-----
 MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC10dxEGINZbF0nIoMtM8705Nqm6ZWdb72DqTdFJ+UzQIRIUS59lQkYLvdQp71767vz0dVlPTikHmiv
@@ -394,7 +394,7 @@ function decodePsshBox(data) {
       for (let i = 0; i < keyCountInt; i++) {
         // key id
         let keyId = Buffer.alloc(16);
-        decodeData.copy(keyId, 0, 32 + i * 16, 32 + (i + 1) * 16);
+        decodedData.copy(keyId, 0, 32 + i * 16, 32 + (i + 1) * 16);
         result.key_id.push(keyId.toString("hex"));
       }
     }
@@ -457,6 +457,36 @@ const downloadFiles = (urls, dir) => {
       dir,
       "-Z",
       ...urls,
+    ]);
+    child.stdout.on("data", (data) => {
+      printProgress(data.toString());
+    });
+    child.stderr.on("data", (data) => {
+      printProgress(data.toString());
+    });
+    child.on("error", (err) => printProgress(err.toString()));
+    child.on("message", (msg, _) => printProgress(msg));
+    child.on("exit", (code) => {
+      if (code !== 0) {
+        reject(`aria2c exited with code ${code}`);
+      }
+      resolve();
+    });
+  });
+};
+
+/**
+ * Downloads a url using Aria2c
+ * @param {string} url url to download
+ * @param {string} dir path to directory where file should be saved
+ */
+const downloadFile = (url, dir) => {
+  return new Promise((resolve, reject) => {
+    const child = spawn("aria2c", [
+      "--auto-file-renaming=false",
+      "-d",
+      dir,
+      url,
     ]);
     child.stdout.on("data", (data) => {
       printProgress(data.toString());
@@ -561,7 +591,7 @@ function mergeFilesLinux(dir, out, segments) {
  * @returns best video representation
  *
  */
-const getBestVideoRepresentation = (episode, videoSet) => {
+const getBestVideoRepresentation = (videoSet) => {
   // not all manifests have a maxWidth and maxHeight
   // some only have one specific resolution but multiple bandwiths
 
@@ -598,9 +628,7 @@ const getBestAudioRepresentation = (audioReps) => {
     return audioReps.find(
       (x) =>
         // searches by best codec first, then lowest codec, then just returns the first one it can
-        episode.$.codecs === "mp4a.40.5" ||
-        episode.$.codecs === "mp4a.40.2" ||
-        episode.$.codecs
+        x.$.codecs === "mp4a.40.5" || x.$.codecs === "mp4a.40.2" || x.$.codecs
     );
   }
 };
@@ -873,11 +901,13 @@ module.exports = {
   AUDIO_DEC,
   VIDEO_ENC,
   AUDIO_ENC,
+  downloadFile,
   DOWNLOAD_BASE,
   DOWNLOAD_DIR,
   OUTPUT_DIR,
   fetchManifest,
   processSegments,
+  parseLicenseResponse,
   getOutputFilename,
   sanitize: function (input, options, replaceSpace = true) {
     var replacement = (options && options.replacement) || "";
