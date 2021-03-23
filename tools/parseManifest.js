@@ -10,6 +10,9 @@ const { join } = require("path");
 const commander = require("commander");
 const { sanitize, dateDiffToString } = require("../utils");
 const program = new commander.Command();
+const xml2js = require("xml2js");
+const fetch = require("node-fetch");
+const { inspect } = require("util");
 
 program.version("1.0.0");
 program
@@ -38,42 +41,71 @@ if (options.input && options.output) {
   process.exit(1);
 }
 
+const getManifestRequestUrl = (pid) =>
+  `https://link.theplatform.com/s/dJ5BDC/${pid}?format=SMIL&manifest=m3u&Tracking=true&mbr=true`;
+
 const debug = (msg) => {
   if (options.debug) {
     console.debug(msg);
   }
 };
 
-function parseFile(data) {
-  return data.result.data.map((x) => {
+function getMPDUrl(pid) {
+  return new Promise((resolve, reject) => {
+    const url = getManifestRequestUrl(pid);
+    fetch(url)
+      .then(async (r) => {
+        if (r.status !== 200) {
+          reject(r.statusText);
+        } else {
+          // parse
+          const parser = new xml2js.Parser();
+          const parsed = await parser.parseStringPromise(await r.text());
+
+          resolve(parsed.smil.body[0].seq[0].switch[0].video[0].$.src);
+        }
+      })
+      .catch((e) => reject(e));
+  });
+}
+
+async function parseFile(data) {
+  const episodes = data.result.data;
+  const out = [];
+  for await (const episode of episodes) {
     debug(
-      `parsed episode: S${x.season_number} E${x.episode_number} ${x.episode_title}`
+      `Processing episode: S${episode.season_number} E${episode.episode_number} ${episode.episode_title}`
     );
+    debug(`fetching MPD for episode ${episode.episode_title}...`);
+    const mpd_url = await getMPDUrl(episode.metaData.pid);
+    debug(`MPD fetched for episode ${episode.episode_title}`);
     const seasonShortcode =
-      x.season_number.length > 1
-        ? `S${x.season_number}`
-        : `S0${x.season_number}`;
+      episode.season_number.length > 1
+        ? `S${episode.season_number}`
+        : `S0${episode.season_number}`;
     const episodeShortcode =
-      x.episode_number.length > 1
-        ? `E${x.episode_number}`
-        : `E0${x.episode_number}`;
-    return {
-      series_title: x.series_title,
-      series_title_safe: sanitize(x.series_title),
-      episode_title: x.episode_title,
-      episode_title_safe: sanitize(x.episode_title),
-      episode_number: x.episode_number,
-      season_number: x.season_number,
+      episode.episode_number.length > 1
+        ? `E${episode.episode_number}`
+        : `E0${episode.episode_number}`;
+    out.push({
+      series_title: episode.series_title,
+      series_title_safe: sanitize(episode.series_title),
+      episode_title: episode.episode_title,
+      episode_title_safe: sanitize(episode.episode_title),
+      episode_number: episode.episode_number,
+      season_number: episode.season_number,
       season_shortcode: seasonShortcode,
       episode_shortcode: episodeShortcode,
-      mpd_url: x.streaming_url,
-      content_id: x.content_id,
+      mpd_url,
+      content_id: episode.content_id,
       output_name: sanitize(
-        `${x.series_title}.${seasonShortcode}.${episodeShortcode}.${x.episode_title}.mp4`
+        `${episode.series_title}.${seasonShortcode}.${episodeShortcode}.${episode.episode_title}.mp4`
       ),
-      content_id: x.content_id,
-    };
-  });
+      content_id: episode.content_id,
+    });
+  }
+
+  return out;
 }
 
 const manifestPath = join(__dirname, "manifest.json");
@@ -97,7 +129,7 @@ if (existsSync(manifestPath)) {
     console.log("Processing file...");
     const path = join(__dirname, "cbs-manifests", options.input);
     const manifest = readFileSync(path, { encoding: "utf-8" });
-    const episodes = parseFile(JSON.parse(manifest));
+    const episodes = await parseFile(JSON.parse(manifest));
     outManifest.push(...episodes);
 
     writeFileSync(manifestPath, JSON.stringify(outManifest, null, 3), {

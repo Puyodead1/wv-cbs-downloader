@@ -9,6 +9,7 @@
     "crypto-js": "^4.0.0",
     "cryptojs-extension": "github:pkaminski/cryptojs-extension",
     "inquirer": "^7.3.3",
+    "node-fetch": "^2.6.1",
     "pbf": "^3.2.1",
     "rimraf": "^3.0.2",
     "truncate-utf8-bytes": "^1.0.2",

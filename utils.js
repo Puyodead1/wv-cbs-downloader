@@ -29,8 +29,8 @@ function sanitize(input, replacement, replaceSpace) {
   return truncate(sanitized, 255);
 }
 
-//const DOWNLOAD_BASE = __dirname;
-const DOWNLOAD_BASE = "/mnt/f/CBS";
+const DOWNLOAD_BASE = __dirname;
+//const DOWNLOAD_BASE = "/mnt/f/CBS";
 const DOWNLOAD_DIR = join(DOWNLOAD_BASE, "temp");
 const AUDIO_DIR = join(DOWNLOAD_BASE, "temp", "audio");
 const VIDEO_DIR = join(DOWNLOAD_BASE, "temp", "video");
@@ -40,8 +40,8 @@ const AUDIO_DEC = join(DOWNLOAD_BASE, "temp", "audio.decrypted");
 const VIDEO_DEC = join(DOWNLOAD_BASE, "temp", "video.decrypted");
 const OUTPUT_DIR = join(DOWNLOAD_BASE, "out");
 // const OUTPUT_DIR = DOWNLOAD_BASE;
-//const PROXY_HOST = "10.223.33.124";
-const PROXY_HOST = "10.1.10.234";
+//const PROXY_HOST = "192.168.1.5";
+const PROXY_HOST = "192.168.42.3";
 
 const CHROME_RSA_PRIVATE_KEY = `-----BEGIN PRIVATE KEY-----
 MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC10dxEGINZbF0nIoMtM8705Nqm6ZWdb72DqTdFJ+UzQIRIUS59lQkYLvdQp71767vz0dVlPTikHmiv
