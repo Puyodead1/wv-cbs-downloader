@@ -21,7 +21,7 @@ const { join } = require("path");
 const { existsSync, mkdirSync } = require("fs");
 
 const LICENSE_SERVER_AUTH =
-  "Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjNkNjg4NGJmLWViMDktNDA1Zi1hOWZjLWU0NGE1NmY3NjZiNiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0OTM4NDE3OF9VUyIsImVudCI6W3siYmlkIjoiQWxsQWNjZXNzTWFpbiIsImVwaWQiOjl9XSwiaWF0IjoxNjEzNzQwNDcxLCJleHAiOjE2MTM3NDc2NzEsImlzcyI6ImNicyIsImFpZCI6ImNic2kiLCJqdGkiOiIyOWE5N2Y1MS1mNmQ3LTRmM2UtODQ4OS00ZGM3NDg3MmRiZGIifQ.kFvE2OI4HTxdO27mgT5MR0VWxR28mt6nvMlFHy6WHyA";
+  "Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjNkNjg4NGJmLWViMDktNDA1Zi1hOWZjLWU0NGE1NmY3NjZiNiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1MjQzNjIzM19VUyIsImVudCI6W3siYmlkIjoiQWxsQWNjZXNzTWFpbiIsImVwaWQiOjl9XSwiaWF0IjoxNjE2NTAxNjYwLCJleHAiOjE2MTY1MDg4NjAsImlzcyI6ImNicyIsImFpZCI6ImNic2kiLCJqdGkiOiI2YzYxZWFkOC01NWM3LTQ2ZWEtOGI0Yi00ZTAzN2Y5YWFlZDEifQ.Kw-UAwyNv5Y5TgW7DtewBCs_fHgOOW4DtS2XnWA9K4I";
 
 function processEpisode(episode) {
   return new Promise(async (resolve, reject) => {
@@ -41,7 +41,6 @@ function processEpisode(episode) {
           );
 
           const videoRepresentation = getBestVideoRepresentation(
-            episode,
             videoAdaptationSet
           );
 
