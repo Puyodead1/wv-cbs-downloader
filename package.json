@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "aria2": "^4.1.2",
     "atob": "^2.1.2",
     "axios": "^0.21.1",
     "better-logging": "^4.4.1",

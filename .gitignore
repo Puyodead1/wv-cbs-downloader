@@ -4,3 +4,5 @@ tools/manifest.json
 tools/cbs-manifests/*.json
 node_modules/
 *.mp4
+tools/manifest-*.json
+package-lock.json

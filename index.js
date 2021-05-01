@@ -15,13 +15,14 @@ const {
   mergeAV,
   cleanup,
   getOutputFilename,
+  SUBTITLE_ENC,
 } = require("./utils");
 const xml2js = require("xml2js");
 const { join } = require("path");
 const { existsSync, mkdirSync } = require("fs");
 
 const LICENSE_SERVER_AUTH =
-  "Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjNkNjg4NGJmLWViMDktNDA1Zi1hOWZjLWU0NGE1NmY3NjZiNiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1MjQzNjIzM19VUyIsImVudCI6W3siYmlkIjoiQWxsQWNjZXNzTWFpbiIsImVwaWQiOjl9XSwiaWF0IjoxNjE2MTkzNjE0LCJleHAiOjE2MTYyMDA4MTQsImlzcyI6ImNicyIsImFpZCI6ImNic2kiLCJqdGkiOiJlZDBjNzFiMy03NGQ5LTQ5NGYtYjI1MC1jNTU5YzEzOTJjYmYifQ.mqpgV3d8R07GxbMmziHGxJJuNu2B6wkEEgEDrP4Jos4";
+  "Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjNkNjg4NGJmLWViMDktNDA1Zi1hOWZjLWU0NGE1NmY3NjZiNiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1MjQzNjIzM19VUyIsImVudCI6W3siYmlkIjoiQWxsQWNjZXNzTWFpbiIsImVwaWQiOjl9XSwiaWF0IjoxNjE4MjYzOTIyLCJleHAiOjE2MTgyNzExMjIsImlzcyI6ImNicyIsImFpZCI6ImNic2kiLCJqdGkiOiI0NzM0ODM1My1hNTAyLTQ4ZjctYWIzYy02YjdlYmFiNjM4MjkifQ.yR-t6GJKszOfx_545BF3BS3vA6p7dIQZJzjeiInSm-o";
 
 function processEpisode(episode) {
   return new Promise(async (resolve, reject) => {
@@ -61,6 +62,10 @@ function processEpisode(episode) {
             reject("failure getting best audio representation!");
           }
 
+          const subtitleRepresentation = adaptationSets.find(
+            (x) => x.$.contentType === "text" && x.$.lang === "en"
+          );
+
           console.debug(
             `Best Video: ${videoRepresentation.$.height}x${videoRepresentation.$.width}`,
             `Best Audio: ${audioRepresentation.$.codecs}`
@@ -72,8 +77,12 @@ function processEpisode(episode) {
             audioRepresentation.SegmentTemplate[0].$.initialization;
           const videoInit =
             videoRepresentation.SegmentTemplate[0].$.initialization;
+          // const subtitleInit =
+          //   subtitleRepresentation.SegmentTemplate[0].$.initialization;
           const audioMedia = audioRepresentation.SegmentTemplate[0].$.media;
           const videoMedia = videoRepresentation.SegmentTemplate[0].$.media;
+          // const subtitleMedia =
+          //   subtitleRepresentation.SegmentTemplate[0].$.media;
 
           const audioPssh = bestAudioAdaptationSet.ContentProtection.find(
             (x) =>
@@ -130,12 +139,15 @@ function processEpisode(episode) {
             keys = { audio: audioKeyResponse[0], video: videoKeyResponse[0] };
           }
 
+          // FIXME: we are currenly assuming all videos have subtitles, which is incorrect
           const audioTimeline =
             audioRepresentation.SegmentTemplate[0].SegmentTimeline[0].S;
           const videoTimeline =
             videoRepresentation.SegmentTemplate[0].SegmentTimeline[0].S;
+          // const subtitleTimeline =
+          //   subtitleRepresentation.SegmentTemplate[0].SegmentTimeline[0].S;
 
-          const { NOAS, NOVS } = await calculateSegmentCount(
+          const { NOAS, NOVS, NOSS } = await calculateSegmentCount(
             audioTimeline,
             videoTimeline
           );
@@ -157,9 +169,19 @@ function processEpisode(episode) {
             videoUrls.push(`${baseURL}${videoMedia.replace("$Number$", i)}`);
           }
 
+          // const subtitleUrls = [`${baseURL}${subtitleInit}`];
+
+          // // using NOSS
+          // for (var i = 1; i < NOSS + 1; i++) {
+          //   subtitleUrls.push(
+          //     `${baseURL}${subtitleMedia.replace("$Number$", i)}`
+          //   );
+          // }
+
           // process audio and video segments, this includes downloading, merging, and decrypting
           await processSegments("audio", audioUrls, NOAS, keys.audio.key);
           await processSegments("video", videoUrls, NOVS, keys.video.key);
+          //   await processSegments("subtitle", subtitleUrls, NOSS);
 
           console.debug(
             `[Proccessor] All segments have been downloaded, merged and decrypted, merging AV...`
@@ -190,6 +212,7 @@ function processEpisode(episode) {
           await mergeAV(
             AUDIO_DEC,
             VIDEO_DEC,
+            // SUBTITLE_ENC,
             join(SERIES_OUTPUT_PATH, episode.output_name)
           ).catch((e) => console.error(`[MergeAV] Error merging AV: ${e}`));
           console.debug("[Processor] AV Merge complete, cleaning up...");

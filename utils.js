@@ -13,6 +13,8 @@ const { unlink, existsSync, mkdir } = require("fs");
 const { default: axios } = require("axios");
 const { join } = require("path");
 const truncate = require("truncate-utf8-bytes");
+const xml2js = require("xml2js");
+const Parser = new xml2js.Parser();
 
 var illegalRe = /[\/\?<>\\:\*\|":]/g;
 var controlRe = /[\x00-\x1f\x80-\x9f]/g;
@@ -34,14 +36,16 @@ const DOWNLOAD_BASE = __dirname;
 const DOWNLOAD_DIR = join(DOWNLOAD_BASE, "temp");
 const AUDIO_DIR = join(DOWNLOAD_BASE, "temp", "audio");
 const VIDEO_DIR = join(DOWNLOAD_BASE, "temp", "video");
+const SUBTITLE_DIR = join(DOWNLOAD_BASE, "temp", "subtitle");
 const AUDIO_ENC = join(DOWNLOAD_BASE, "temp", "audio.encrypted");
 const VIDEO_ENC = join(DOWNLOAD_BASE, "temp", "video.encrypted");
+const SUBTITLE_ENC = join(DOWNLOAD_BASE, "temp", "subtitle");
 const AUDIO_DEC = join(DOWNLOAD_BASE, "temp", "audio.decrypted");
 const VIDEO_DEC = join(DOWNLOAD_BASE, "temp", "video.decrypted");
 const OUTPUT_DIR = join(DOWNLOAD_BASE, "out");
 // const OUTPUT_DIR = DOWNLOAD_BASE;
-//const PROXY_HOST = "192.168.1.5";
-const PROXY_HOST = "192.168.42.3";
+const PROXY_HOST = "192.168.1.5";
+//const PROXY_HOST = "192.168.42.3";
 
 const CHROME_RSA_PRIVATE_KEY = `-----BEGIN PRIVATE KEY-----
 MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC10dxEGINZbF0nIoMtM8705Nqm6ZWdb72DqTdFJ+UzQIRIUS59lQkYLvdQp71767vz0dVlPTikHmiv
@@ -66,9 +70,23 @@ YrOzlde+V3UOb5FVzPcrOmaERfyujV3h4sHGRbTCsqYVwMalO7hmNmtemwt0xBuf5Juia7t1scuJypQ8
 CQIDAQAB
 -----END PUBLIC KEY-----`;
 
-async function fetchManifest(url) {
-  const res = await axios.get(url);
-  return res.data;
+function fetchManifest(url) {
+  return new Promise((resolve, reject) => {
+    axios
+      .get(url)
+      .then((r) => {
+        resolve(r.data);
+      })
+      .catch((e) => reject(e));
+  });
+}
+
+function parseManifest(data) {
+  return new Promise((resolve, reject) => {
+    Parser.parseStringPromise(data)
+      .then((r) => resolve(r))
+      .catch((e) => reject(e));
+  });
 }
 
 async function isRSAConsistent(publicKey, privateKey) {
@@ -450,6 +468,7 @@ function decodePsshData(psshData) {
  * @param {string} dir path to directory where files should be saved
  */
 const downloadFiles = (urls, dir) => {
+  console.debug(urls, dir);
   return new Promise((resolve, reject) => {
     const child = spawn("aria2c", [
       "--auto-file-renaming=false",
@@ -458,6 +477,39 @@ const downloadFiles = (urls, dir) => {
       "-Z",
       ...urls,
     ]);
+    console.debug(child.spawnargs);
+    child.stdout.on("data", (data) => {
+      printProgress(data.toString());
+    });
+    child.stderr.on("data", (data) => {
+      printProgress(data.toString());
+    });
+    child.on("error", (err) => printProgress(err.toString()));
+    child.on("message", (msg, _) => printProgress(msg));
+    child.on("exit", (code) => {
+      if (code !== 0) {
+        reject(`aria2c exited with code ${code}`);
+      }
+      resolve();
+    });
+  });
+};
+
+/**
+ * Downloads a bunch of urls in parallel using Aria2c and a text file listing all urls
+ * @param {string} listPath path to text file listing all urls to download
+ * @param {string} dir path to directory where files should be saved
+ */
+const downloadFilesFromTxtList = (listPath, dir) => {
+  return new Promise((resolve, reject) => {
+    const child = spawn("aria2c", [
+      "--auto-file-renaming=false",
+      "-d",
+      dir,
+      "-i",
+      listPath,
+    ]);
+    console.debug(child.spawnargs);
     child.stdout.on("data", (data) => {
       printProgress(data.toString());
     });
@@ -558,9 +610,9 @@ function decryptFile(key, infile, outfile) {
  * Merges segments using linux cat
  * @param {string} dir path to directory that contains segments
  * @param {string} out path to merged file
- * @param {string[]} segments array of paths to files to merge
+ * @param {number} segments number of segments to merge
  */
-function mergeFilesLinux(dir, out, segments) {
+function mergeFilesLinux(dir, out, segments, initFileName = "init.m4v") {
   return new Promise(async (resolve, reject) => {
     const platform = process.platform;
     if (platform !== "linux") {
@@ -568,13 +620,13 @@ function mergeFilesLinux(dir, out, segments) {
       process.exit(1);
     }
     try {
-      execSync(`cat init.m4v >> '${out}'`, {
+      execSync(`cat ${initFileName} >> "${out}"`, {
         cwd: dir,
         encoding: "utf8",
         shell: "/bin/bash",
       });
       execSync(
-        `for i in seg_{1..${segments}}.m4s; do cat "$i"; done >> '${out}'`,
+        `for i in seg_{1..${segments}}.m4s; do cat "$i"; done >> "${out}"`,
         { cwd: dir, shell: "/bin/bash", encoding: "utf8" }
       );
     } catch (e) {
@@ -659,6 +711,7 @@ const getBestAudioAdaptationSet = (audioSets) => {
  * Merges audio and video with FFMPEG
  * @param {string} audioPath path to audio file
  * @param {string} videoPath path to video file
+ * @param {string} subtitlePath path to subtitle file
  * @param {string} outputPath path to output file
  */
 function mergeAV(audioPath, videoPath, outputPath) {
@@ -668,6 +721,8 @@ function mergeAV(audioPath, videoPath, outputPath) {
       audioPath,
       "-i",
       videoPath,
+      // "-i",
+      // subtitlePath,
       "-c",
       "copy",
       outputPath,
@@ -819,8 +874,12 @@ function cleanup() {
   });
 }
 
-async function calculateSegmentCount(audioTimeline, videoTimeline) {
-  const result = { NOAS: 0, NOVS: 0 };
+async function calculateSegmentCount(
+  audioTimeline,
+  videoTimeline,
+  subtitleTimeline = undefined
+) {
+  const result = { NOAS: 0, NOVS: 0, NOSS: 0 };
 
   // calculate audio segments
   for await (const s of audioTimeline) {
@@ -840,13 +899,37 @@ async function calculateSegmentCount(audioTimeline, videoTimeline) {
     }
   }
 
+  if (subtitleTimeline) {
+    // calculate subtitle segments
+    for await (const s of subtitleTimeline) {
+      if (s.$.r) {
+        result.NOSS = result.NOSS + (parseInt(s.$.r) + 1);
+      } else {
+        result.NOSS = result.NOSS + 1;
+      }
+    }
+  }
+
   return result;
 }
 
 function processSegments(type, urls, NOS, key) {
-  const DIR = type == "audio" ? AUDIO_DIR : VIDEO_DIR;
-  const ENC = type == "audio" ? AUDIO_ENC : VIDEO_ENC;
-  const DEC = type == "audio" ? AUDIO_DEC : VIDEO_DEC;
+  var DIR, ENC, DEC;
+  //  = type == "audio" ? AUDIO_DIR : VIDEO_DIR;
+  // const ENC = type == "audio" ? AUDIO_ENC : VIDEO_ENC;
+  // const DEC = type == "audio" ? AUDIO_DEC : VIDEO_DEC;
+  if (type === "audio") {
+    DIR = AUDIO_DIR;
+    ENC = AUDIO_ENC;
+    DEC = AUDIO_DEC;
+  } else if (type === "video") {
+    DIR = VIDEO_DIR;
+    ENC = VIDEO_ENC;
+    DEC = VIDEO_DEC;
+  } else if (type === "subtitle") {
+    DIR = SUBTITLE_DIR;
+    ENC = SUBTITLE_ENC;
+  }
 
   return new Promise(async (resolve, _) => {
     const downloadStart = Date.now();
@@ -866,13 +949,17 @@ function processSegments(type, urls, NOS, key) {
       .then(() => console.debug(`${type} segments merged`))
       .catch((e) => console.error(`Failed to merge ${type} segments: ${e}`));
 
-    // decrypt
-    console.debug(
-      `Decrypting ${type} file from ${ENC} to ${DEC} with key ${key}...`
-    );
-    await decryptFile(key, ENC, DEC)
-      .then(() => console.debug(`${type} decryption complete`))
-      .catch((e) => console.error(`Error decrypting ${type}: ${e}`));
+    // decrypt if not subtitles
+    if (type !== "subtitle") {
+      console.debug(
+        `Decrypting ${type} file from ${ENC} to ${DEC} with key ${key}...`
+      );
+      await decryptFile(key, ENC, DEC)
+        .then(() => console.debug(`${type} decryption complete`))
+        .catch((e) => console.error(`Error decrypting ${type}: ${e}`));
+    } else {
+      console.debug(`Not attempting to decrypt subtitle`);
+    }
 
     resolve();
   });
@@ -901,6 +988,8 @@ module.exports = {
   AUDIO_DEC,
   VIDEO_ENC,
   AUDIO_ENC,
+  SUBTITLE_DIR,
+  SUBTITLE_ENC,
   downloadFile,
   DOWNLOAD_BASE,
   DOWNLOAD_DIR,
@@ -909,6 +998,8 @@ module.exports = {
   processSegments,
   parseLicenseResponse,
   getOutputFilename,
+  parseManifest,
+  downloadFilesFromTxtList,
   sanitize: function (input, options, replaceSpace = true) {
     var replacement = (options && options.replacement) || "";
     var output = sanitize(input, replacement, replaceSpace);
