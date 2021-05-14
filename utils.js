@@ -1,15 +1,17 @@
 const Pbf = require("pbf");
 const { WidevineCencHeader } = require("./protos/widevine_cenc_header.proto");
 const { SignedMessage, License } = require("./protos/license_protocol.proto");
+const chunks = require("buffer-chunks");
 const c = require("centra");
 const { createConnection } = require("net");
+var toString = require("stream-to-string");
 const CryptoJS = require("crypto-js");
 require("cryptojs-extension/build_node/cmac");
 const crypto = require("crypto").webcrypto;
 const atob = require("atob");
 const { spawn, execSync, exec } = require("child_process");
 const rimraf = require("rimraf");
-const { unlink, existsSync, mkdir } = require("fs");
+const { unlink, existsSync, mkdir, writeFileSync } = require("fs");
 const { default: axios } = require("axios");
 const { join } = require("path");
 const truncate = require("truncate-utf8-bytes");
@@ -40,8 +42,8 @@ const AUDIO_DEC = join(DOWNLOAD_BASE, "temp", "audio.decrypted");
 const VIDEO_DEC = join(DOWNLOAD_BASE, "temp", "video.decrypted");
 const OUTPUT_DIR = join(DOWNLOAD_BASE, "out");
 // const OUTPUT_DIR = DOWNLOAD_BASE;
-//const PROXY_HOST = "192.168.1.5";
-const PROXY_HOST = "192.168.42.3";
+const PROXY_HOST = "10.223.33.13";
+//const PROXY_HOST = "192.168.42.3";
 
 const CHROME_RSA_PRIVATE_KEY = `-----BEGIN PRIVATE KEY-----
 MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC10dxEGINZbF0nIoMtM8705Nqm6ZWdb72DqTdFJ+UzQIRIUS59lQkYLvdQp71767vz0dVlPTikHmiv
@@ -415,7 +417,10 @@ function decodePsshBox(data) {
     dataStart + dataSize.length + psshData.length
   );
 
-  result.dataB64 = psshData.toString("base64");
+  var list = chunks(psshData, 5);
+  console.log(list);
+
+  result.dataB64 = "";
   result.dataBuffer = psshData;
   result.data = decodePsshData(psshData);
   result.version = psshVersion;

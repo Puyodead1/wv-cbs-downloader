@@ -3,6 +3,7 @@
     "atob": "^2.1.2",
     "axios": "^0.21.1",
     "better-logging": "^4.4.1",
+    "buffer-chunks": "^0.1.1",
     "centra": "^2.4.2",
     "chalk": "^4.1.0",
     "commander": "^7.0.0",
@@ -12,6 +13,8 @@
     "node-fetch": "^2.6.1",
     "pbf": "^3.2.1",
     "rimraf": "^3.0.2",
+    "stream-buffers": "^3.0.2",
+    "stream-to-string": "^1.2.0",
     "truncate-utf8-bytes": "^1.0.2",
     "xml2js": "^0.4.23"
   }

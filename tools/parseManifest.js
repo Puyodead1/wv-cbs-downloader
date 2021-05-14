@@ -12,7 +12,6 @@ const { sanitize, dateDiffToString } = require("../utils");
 const program = new commander.Command();
 const xml2js = require("xml2js");
 const fetch = require("node-fetch");
-const { inspect } = require("util");
 
 program.version("1.0.0");
 program
@@ -149,7 +148,7 @@ if (existsSync(manifestPath)) {
       // read the file as a string
       const manifest = readFileSync(path, { encoding: "utf-8" });
       // parse the data
-      const episodes = parseFile(JSON.parse(manifest));
+      const episodes = await parseFile(JSON.parse(manifest));
       // push the data
       newEpisodes.push(...episodes);
       debug(`Parsed ${files.indexOf(file) + 1}/${files.length} files`);
