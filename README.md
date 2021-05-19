@@ -2,6 +2,10 @@
 
 # I AM NOT PROVIDING SUPPORT FOR THIS
 
+## Note
+- There may be expired bearer tokens left behind and random test code files, this is because I didn't initally intent to open source this repository.
+- **This won't work after May 31, 2021 due to Widevine removing support for old CDM versions.**
+
 # What the fuck is this?
 
 utility scripts written in nodejs to assist in a rather not-so-legal activity known as piracy, its specifically make for CBS all access
