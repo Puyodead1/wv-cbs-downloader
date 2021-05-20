@@ -1,10 +1,10 @@
-## STOP! USE OF ANY SCRIPTS IN THIS REPOSITORY IS AT YOUR OWN RISK, I AM NOT RESPONSIBLE FOR YOU GETTING IN LEGAL TROUBLE! THESE SCRIPTS ARE ONLY PUBLIC FOR EDUCATIONAL PURPOSES! I HIGHLY SUGGEST YOU LEAVE THIS STUFF ALONE!
+![GitHub](https://img.shields.io/github/license/Puyodead1/wv-cbs-downloader?style=for-the-badge)
+![GitHub top language](https://img.shields.io/github/languages/top/Puyodead1/wv-cbs-downloader?style=for-the-badge)
 
-# I AM NOT PROVIDING SUPPORT FOR THIS
+### STOP! USE OF ANY SCRIPTS IN THIS REPOSITORY IS AT YOUR OWN RISK, I AM NOT RESPONSIBLE FOR YOU GETTING IN LEGAL TROUBLE! THESE SCRIPTS ARE ONLY PUBLIC FOR EDUCATIONAL PURPOSES! I HIGHLY SUGGEST YOU LEAVE THIS STUFF ALONE!
 
 ## Note
 - There may be expired bearer tokens left behind and random test code files, this is because I didn't initally intent to open source this repository.
-- **This won't work after May 31, 2021 due to Widevine removing support for old CDM versions.**
 
 # What the fuck is this?
 
@@ -16,7 +16,7 @@ utility scripts written in nodejs to assist in a rather not-so-legal activity kn
 - linux (developed against ubuntu, only required because of the cat command)
 - ffmpeg
 - Bento4 (specifically mp4decrypt)
-- decent amount of free hard drive space, at least 8-16gb (a single 1080p episode is around 1.5-2gb, with 720p being close behind that)
+- Decryption keys for the content (don't ask me for help getting the keys)
 
 # How to use
 
@@ -153,3 +153,5 @@ Processing 14 episodes, please wait...
 ```
 
 NOTE: the X (cross) unicode character for 'Missing' doesn't seem to appear correctly on the default windows Command Prompt, but it does work correctly when using Windows Terminal Preview
+
+### I'm not providing support for this
